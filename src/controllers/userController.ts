@@ -220,3 +220,31 @@ export const updatePassword = catchAsync(async (req, res, next) => {
     jwtToken,
   });
 });
+
+export const getUserProfile = catchAsync(async (req, res, next) => {
+  const user = await User.findById((req as AuthRequest)?.user?.id);
+
+  if (!user) {
+    return next(new AppError("User does not exist.", 400));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      user,
+    },
+  });
+});
+
+export const deleteUserAccount = catchAsync(async (req, res, next) => {
+  const user = await User.findByIdAndDelete((req as AuthRequest)?.user?.id);
+
+  if (!user) {
+    return next(new AppError("User does not exist.", 400));
+  }
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});
