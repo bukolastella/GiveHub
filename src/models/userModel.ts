@@ -19,6 +19,7 @@ export interface IUser extends Document {
   isPasswordCorrect(value: string): Promise<boolean>;
   resetPasswordToken?: string;
   resetPasswordTokenExpires?: Date;
+  avatar?: string;
 }
 
 mongoose.plugin(extraClean);
@@ -67,6 +68,7 @@ const userSchema = new Schema<IUser>(
     resetPasswordToken: String,
     resetPasswordTokenExpires: Date,
     passwordChangedAt: Date,
+    avatar: String,
   },
   {
     toJSON: {

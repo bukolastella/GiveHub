@@ -10,7 +10,11 @@ import {
   updatePassword,
   verifyEmail,
 } from "./controllers/userController";
-import { userProtect } from "./controllers/authController";
+import {
+  googleAuth,
+  oAuthGoogle,
+  userProtect,
+} from "./controllers/authController";
 
 export const app = express();
 app.use(express.json());
@@ -24,6 +28,8 @@ app.post("/api/v1/users/reset-password", resetPassword);
 app.post("/api/v1/users/update-password", userProtect, updatePassword);
 app.get("/api/v1/users/profile", userProtect, getUserProfile);
 app.post("/api/v1/users/delete-account", userProtect, deleteUserAccount);
+app.post("/api/v1/google-auth", googleAuth);
+app.get("/api/v1/oauth-google", oAuthGoogle);
 
 app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({

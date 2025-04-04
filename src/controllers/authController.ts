@@ -1,8 +1,10 @@
 import { Request } from "express";
-import { IUser, User } from "../models/userModel";
+import { User } from "../models/userModel";
 import AppError from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import jwt, { JwtPayload } from "jsonwebtoken";
+import { OAuth2Client } from "google-auth-library";
+import { signInToken } from "../utils/data";
 
 export interface AuthRequest extends Request {
   user?: { id: string };
@@ -65,3 +67,106 @@ export const restrictTo = (...roles: string[]) => {
     next();
   };
 };
+
+export const googleAuth = catchAsync(async (req, res, next) => {
+  // res.header("Access-Control-Allow-Origin", "http://localhost:5173"); //
+  // res.header("Referrer-Policy", "no-referrer-when-downgrade"); //
+
+  const redirectUrl = "http://127.0.0.1:3000/api/v1/oauth-google";
+
+  const oAuth2Client = new OAuth2Client(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    redirectUrl
+  );
+
+  const authorizedUrl = oAuth2Client.generateAuthUrl({
+    access_type: "offline",
+    scope: [
+      "https://www.googleapis.com/auth/userinfo.profile",
+      "https://www.googleapis.com/auth/userinfo.email",
+      "openid",
+    ],
+    prompt: "consent",
+  });
+
+  res.json({ url: authorizedUrl });
+});
+
+interface GoogleUserInfo {
+  sub: string;
+  name: string;
+  given_name: string;
+  family_name: string;
+  picture: string;
+  email: string;
+  email_verified: boolean;
+}
+
+export const oAuthGoogle = catchAsync(async (req, res, next) => {
+  const { code } = req.query;
+
+  const redirectUrl = "http://127.0.0.1:3000/api/v1/oauth-google";
+
+  const oAuth2Client = new OAuth2Client(
+    process.env.CLIENT_ID,
+    process.env.CLIENT_SECRET,
+    redirectUrl
+  );
+
+  if (!code) {
+    next(new AppError("Code not defined", 400));
+  }
+
+  const result1 = await oAuth2Client.getToken(code as string);
+
+  oAuth2Client.setCredentials(result1.tokens);
+
+  const oauthUser = oAuth2Client.credentials;
+
+  const temp = await fetch(
+    `https://www.googleapis.com/oauth2/v3/userinfo?access_token=${oauthUser.access_token}`
+  );
+
+  const data: GoogleUserInfo = await temp.json();
+
+  if (!data.email_verified) {
+    next(new AppError("Email not verified", 400));
+  }
+
+  const existingUser = await User.findOne({ email: data.email });
+
+  if (existingUser) {
+    const token = signInToken(existingUser.id);
+
+    res.status(200).json({
+      status: "success",
+      token,
+      data: {
+        user: existingUser,
+      },
+    });
+  } else {
+    const newUser = new User({
+      firstName: data.given_name,
+      lastName: data.family_name,
+      email: data.email,
+      avatar: data.picture,
+      emailVerified: true,
+    });
+
+    await newUser.save({
+      validateBeforeSave: false,
+    });
+
+    const token = signInToken(newUser.id);
+
+    res.status(200).json({
+      status: "success",
+      token,
+      data: {
+        user: newUser,
+      },
+    });
+  }
+});
