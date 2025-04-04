@@ -16,7 +16,10 @@ export const createUser = catchAsync(async (req, res, next) => {
     confirmPassword,
   });
 
-  const emailVerificationToken = newUser.generateEmailVerificationToken();
+  const emailVerificationToken = await newUser.generateEmailVerificationToken();
+  await newUser.save({
+    validateBeforeSave: false,
+  });
 
   const tokenUrl = `${req.protocol}://${req.get(
     "host"
@@ -31,7 +34,7 @@ export const createUser = catchAsync(async (req, res, next) => {
       to: email,
     });
 
-    res.send(201).json({
+    res.status(201).json({
       status: "success",
       message: "Verification email sent",
     });
@@ -48,7 +51,11 @@ export const createUser = catchAsync(async (req, res, next) => {
 });
 
 export const verifyEmail = catchAsync(async (req, res, next) => {
-  const { token } = req.params;
+  const { token } = req.body;
+
+  if (!token) {
+    return next(new AppError("Please provide token!", 400));
+  }
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -60,7 +67,7 @@ export const verifyEmail = catchAsync(async (req, res, next) => {
   });
 
   if (!user) {
-    return next(new AppError("Invalid token or has expired", 400));
+    return next(new AppError("Token no longer valid or has expired", 400));
   }
 
   user.emailVerifiedToken = undefined;
@@ -93,7 +100,7 @@ export const loginUser = catchAsync(async (req, res, next) => {
 
   const token = signInToken(user.id);
 
-  res.send(200).json({
+  res.status(200).json({
     status: "success",
     token,
     data: {
@@ -105,13 +112,21 @@ export const loginUser = catchAsync(async (req, res, next) => {
 export const forgotPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
 
+  if (!email) {
+    return next(new AppError("Please provide email!", 400));
+  }
+
   const user = await User.findOne({ email });
 
   if (!user) {
-    return new AppError("Email doesn't exist.", 400);
+    return next(new AppError("Email doesn't exist.", 400));
   }
 
-  const resetPassswordToken = user.generateResetPasswordToken();
+  const resetPassswordToken = await user.generateResetPasswordToken();
+
+  await user.save({
+    validateBeforeSave: false,
+  });
 
   const tokenUrl = `${req.protocol}://${req.get(
     "host"
@@ -126,7 +141,7 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
       to: email,
     });
 
-    res.send(201).json({
+    res.status(201).json({
       status: "success",
       message: "Reset password email sent",
     });
@@ -143,7 +158,13 @@ export const forgotPassword = catchAsync(async (req, res, next) => {
 });
 
 export const resetPassword = catchAsync(async (req, res, next) => {
-  const { token, password, confirmPassword } = req.params;
+  const { token, password, confirmPassword } = req.body;
+
+  if (!token || !password || !confirmPassword) {
+    return next(
+      new AppError("Please provide token, password and currentPassword!", 400)
+    );
+  }
 
   const hashedToken = crypto.createHash("sha256").update(token).digest("hex");
 
@@ -173,11 +194,16 @@ export const resetPassword = catchAsync(async (req, res, next) => {
 export const updatePassword = catchAsync(async (req, res, next) => {
   const { currentPassword, password, confirmPassword } = req.body;
 
-  console.log((req as any).user, "dlkkl");
+  if (!currentPassword || !password || !confirmPassword) {
+    return next(
+      new AppError(
+        "Please provide currentPassword, password and currentPassword!",
+        400
+      )
+    );
+  }
 
-  const user = await User.findById({
-    id: (req as any)?.user?.id,
-  });
+  const user = await User.findById((req as AuthRequest)?.user?.id);
 
   if (!user || !(await user.isPasswordCorrect(currentPassword))) {
     return next(new AppError("Current password is wrong", 401));

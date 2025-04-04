@@ -10,18 +10,19 @@ import {
 } from "./controllers/userController";
 import { userProtect } from "./controllers/authController";
 
+
 export const app = express();
 app.use(express.json());
 
 // // Auth
 app.post("/api/v1/users/signup", createUser);
-app.post("/api/v1/users/verify-email/:token", verifyEmail);
+app.post("/api/v1/users/verify-email", verifyEmail);
 app.post("/api/v1/users/login", loginUser);
 app.post("/api/v1/users/forgot-password", forgotPassword);
 app.post("/api/v1/users/reset-password", resetPassword);
 app.post("/api/v1/users/update-password", userProtect, updatePassword);
 
-app.all("*", (req, res, next) => {
+app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({
     status: "fail",
     message: `${req.originalUrl} not found.`,

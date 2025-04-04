@@ -1,10 +1,10 @@
-import { model, ObjectId, Schema } from "mongoose";
+import mongoose, { model, Schema } from "mongoose";
 import validator from "validator";
 import bcrypt from "bcryptjs";
 import crypto from "crypto";
+import { extraClean } from "../utils/data";
 
 export interface IUser extends Document {
-  id: ObjectId; //
   firstName: string;
   lastName: string;
   email: string;
@@ -20,6 +20,8 @@ export interface IUser extends Document {
   resetPasswordToken?: string;
   resetPasswordTokenExpires?: Date;
 }
+
+mongoose.plugin(extraClean);
 
 const userSchema = new Schema<IUser>(
   {
@@ -129,6 +131,21 @@ userSchema.methods.generateResetPasswordToken = async function () {
 
 userSchema.methods.isPasswordCorrect = async function (passedPassword: string) {
   return await bcrypt.compare(passedPassword, this.password);
+};
+
+userSchema.methods.hasPasswordChangedAfter = async function (
+  JWTTIMESTAMP: number
+) {
+  if (this.passwordChangedAt) {
+    const changedTimeStamp = parseInt(
+      (this.passwordChangedAt.getTime() / 1000).toString(),
+      10
+    );
+
+    return JWTTIMESTAMP < changedTimeStamp;
+  }
+
+  return false;
 };
 
 export const User = model("User", userSchema);

@@ -1,10 +1,11 @@
+import { Request } from "express";
 import { IUser, User } from "../models/userModel";
 import AppError from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import jwt, { JwtPayload } from "jsonwebtoken";
 
 export interface AuthRequest extends Request {
-  user?: IUser;
+  user?: { id: string };
 }
 
 export const userProtect = catchAsync(async (req, res, next) => {
@@ -42,7 +43,7 @@ export const userProtect = catchAsync(async (req, res, next) => {
     );
   }
 
-  if (await (freshUser as any).changePasswordAfter(decoded.iat)) {
+  if (await (freshUser as any).hasPasswordChangedAfter(decoded.iat)) {
     return next(
       new AppError("User recently changed password. please log in again", 401)
     );
