@@ -1,17 +1,11 @@
 import express from "express";
 import { globalErrorHandler } from "./controllers/errorController";
 import {
-  createUser,
   deleteUserAccount,
-  forgotPassword,
   getUserProfile,
-  loginUser,
-  resetPassword,
   resizeAvatar,
   updateAvatar,
-  updatePassword,
   uploadAvatar,
-  verifyEmail,
 } from "./controllers/userController";
 import {
   facebookAuth,
@@ -20,10 +14,15 @@ import {
   oAuthFacebook,
   oAuthGoogle,
   restrictTo,
+  verifyEmail,
+  updatePassword,
   userProtect,
+  loginUser,
+  forgotPassword,
+  createUser,
+  resetPassword,
 } from "./controllers/authController";
 import passport from "passport";
-import multer from "multer";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 
 export const app = express();
