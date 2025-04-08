@@ -5,6 +5,7 @@ import { catchAsync } from "../utils/catchAsync";
 import jwt, { JwtPayload } from "jsonwebtoken";
 import { OAuth2Client } from "google-auth-library";
 import { signInToken } from "../utils/data";
+import { Profile } from "passport";
 
 export interface AuthRequest extends Request {
   user?: { id: string };
@@ -169,4 +170,60 @@ export const oAuthGoogle = catchAsync(async (req, res, next) => {
       },
     });
   }
+});
+
+export const facebookAuth = async (
+  _accessToken: any,
+  _refreshToken: any,
+  profile: Profile,
+  done: any
+) => {
+  try {
+    if (!profile.emails || profile.emails.length === 0) {
+      return done(new AppError("Can't find email", 400));
+    }
+
+    const email = profile.emails[0].value;
+
+    const user = await User.findOne({ email });
+
+    if (user) {
+      const token = signInToken(user.id);
+      return done(null, { user, token });
+    }
+
+    if (!profile.name) {
+      return done(new AppError("Can't find name", 400));
+    }
+
+    if (!profile.photos || profile.photos.length === 0) {
+      return done(new AppError("Can't find photo", 400));
+    }
+
+    // Create new user
+    const newUser = new User({
+      firstName: profile.name.givenName,
+      lastName: profile.name.familyName,
+      email: email,
+      avatar: profile.photos?.[0]?.value,
+      emailVerified: true,
+    });
+
+    await newUser.save({ validateBeforeSave: false });
+
+    const token = signInToken(newUser.id);
+    return done(null, { user: newUser, token });
+  } catch (err) {
+    return done(err);
+  }
+};
+
+export const oAuthFacebook = catchAsync(async (req, res, next) => {
+  const { user, token } = (req as any).user;
+
+  res.status(200).json({
+    status: "success",
+    token,
+    data: { user },
+  });
 });

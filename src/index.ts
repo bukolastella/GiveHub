@@ -1,5 +1,6 @@
 import mongoose from "mongoose";
 import dotenv from "dotenv";
+dotenv.config({ path: "./config.env" });
 import { app } from "./app";
 
 // Handle uncaught exceptions (complementary)
@@ -8,7 +9,6 @@ process.on("uncaughtException", (error) => {
   process.exit(1);
 });
 
-dotenv.config({ path: "./config.env" });
 const DB = process.env.DATABASE_URL!.replace(
   "<db_password>",
   process.env.DATABASE_PASSWORD!
