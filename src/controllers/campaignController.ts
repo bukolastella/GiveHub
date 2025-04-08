@@ -174,3 +174,71 @@ export const editCampaign = catchAsync(async (req, res, next) => {
     next(error);
   }
 });
+
+export const getAllCampaign = catchAsync(async (req, res, next) => {
+  const tempCampaign = await Campaign.find();
+
+  res.status(200).json({
+    status: "success",
+    result: tempCampaign.length,
+    data: {
+      campaigns: tempCampaign,
+    },
+  });
+});
+
+export const getCampaign = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const newCampaign = await Campaign.findById(id);
+
+  if (!newCampaign) {
+    throw next(new AppError("Id not found", 400));
+  }
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      campaign: newCampaign,
+    },
+  });
+});
+
+export const deleteCampaign = catchAsync(async (req, res, next) => {
+  const { id } = req.params;
+
+  const tempCampaign = await Campaign.findById(id);
+
+  if (!tempCampaign) {
+    throw next(new AppError("Id not found", 400));
+  }
+
+  const oldFilenames = tempCampaign.medias;
+
+  const newCampaign = await Campaign.findByIdAndDelete(id);
+
+  if (!newCampaign) {
+    throw next(new AppError("Delete failed", 400));
+  }
+
+  if (oldFilenames && oldFilenames.length > 0) {
+    for (const filename of oldFilenames) {
+      const filePath = path.join(
+        __dirname,
+        "../../",
+        "public",
+        "img",
+        "medias",
+        filename
+      );
+      fs.unlink(filePath, (err) => {
+        if (err) console.log(`Deleted old file: ${filePath}`);
+      });
+    }
+  }
+
+  res.status(204).json({
+    status: "success",
+    data: null,
+  });
+});

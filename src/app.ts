@@ -26,7 +26,10 @@ import passport from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 import {
   createCampaign,
+  deleteCampaign,
   editCampaign,
+  getAllCampaign,
+  getCampaign,
   uploadMedias,
 } from "./controllers/campaignController";
 
@@ -109,6 +112,15 @@ app.patch(
   restrictTo("admin"),
   uploadMedias,
   editCampaign
+);
+
+app.get("/api/v1/campaign", userProtect, restrictTo("admin"), getAllCampaign);
+app.get("/api/v1/campaign/:id", userProtect, restrictTo("admin"), getCampaign);
+app.delete(
+  "/api/v1/campaign/:id",
+  userProtect,
+  restrictTo("admin"),
+  deleteCampaign
 );
 
 app.all(/(.*)/, (req, res, next) => {
