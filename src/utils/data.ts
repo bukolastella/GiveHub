@@ -73,6 +73,13 @@ export const sendEmail = async (options: {
 export const removeOldAvatarPhoto = async (filename: string) => {
   // if (filename.startsWith("default")) return;
 
-  const filePath = path.join(__dirname, "../../", "public", "img", filename);
+  const filePath = path.join(
+    __dirname,
+    "../../",
+    "public",
+    "img",
+    "avatar",
+    filename
+  );
   await fs.rm(filePath, { force: true }).catch(console.log);
 };

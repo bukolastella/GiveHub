@@ -34,23 +34,25 @@ const multerFiler = (
   }
 };
 
-export const resizeAvatar = catchAsync(
-  async (req: Request, res: e.Response, next: NextFunction) => {
-    if (!req.file) return next();
+export const resizeAvatar = (
+  req: Request,
+  res: e.Response,
+  next: NextFunction
+) => {
+  if (!req.file) return next();
 
-    req.file.filename = `avatar-${(req.user as any).id}-${Date.now()}.jpeg`;
+  req.file.filename = `avatar-${(req.user as any).id}-${Date.now()}.jpeg`;
 
-    await sharp(req.file.buffer)
-      .resize(500, 500, {
-        fit: "contain",
-      })
-      .toFormat("jpeg")
-      .jpeg({ quality: 90 })
-      .toFile(`public/img/${req.file.filename}`);
+  sharp(req.file.buffer)
+    .resize(500, 500, {
+      fit: "contain",
+    })
+    .toFormat("jpeg")
+    .jpeg({ quality: 90 });
+  // .toFile(`public/img/avatar/${req.file.filename}`);
 
-    next();
-  }
-);
+  next();
+};
 
 export const upload = multer({
   storage: multerStorage,
@@ -101,6 +103,8 @@ export const updateAvatar = catchAsync(async (req, res, next) => {
   if (!user) {
     return next(new AppError("User not found.", 400));
   }
+
+  await sharp(req.file.buffer).toFile(`public/img/avatar/${req.file.filename}`);
 
   await removeOldAvatarPhoto(oldAvatar);
 
