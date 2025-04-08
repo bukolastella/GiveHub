@@ -227,3 +227,43 @@ export const oAuthFacebook = catchAsync(async (req, res, next) => {
     data: { user },
   });
 });
+
+export const login = (role: string) =>
+  catchAsync(async (req, res, next) => {
+    const { email, password } = req.body;
+
+    if (!email || !password) {
+      return next(new AppError("Please provide email and password!", 400));
+    }
+
+    const user = await User.findOne({ email });
+
+    if (!user || !(await user.isPasswordCorrect(password))) {
+      return next(new AppError("Incorrect email or password!", 401));
+    }
+
+    if (user.role !== role) {
+      return next(
+        new AppError(
+          `${role.charAt(0).toUpperCase() + role.slice(1)} not found!`,
+          401
+        )
+      );
+    }
+
+    if (!user.emailVerified) {
+      return next(new AppError("Email not verified!", 403));
+    }
+
+    const token = signInToken(user.id);
+
+    res.status(200).json({
+      status: "success",
+      token,
+      data: {
+        user,
+      },
+    });
+  });
+
+export const loginAdmin = login("admin");

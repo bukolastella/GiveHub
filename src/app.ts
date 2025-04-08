@@ -13,6 +13,7 @@ import {
 import {
   facebookAuth,
   googleAuth,
+  loginAdmin,
   oAuthFacebook,
   oAuthGoogle,
   userProtect,
@@ -59,6 +60,10 @@ app.get(
   }),
   oAuthFacebook
 );
+
+// Admin
+app.post("/api/v1/admins/login", loginAdmin);
+
 app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({
     status: "fail",

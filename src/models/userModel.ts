@@ -20,6 +20,7 @@ export interface IUser extends Document {
   resetPasswordToken?: string;
   resetPasswordTokenExpires?: Date;
   avatar?: string;
+  role: string;
 }
 
 mongoose.plugin(extraClean);
@@ -69,6 +70,11 @@ const userSchema = new Schema<IUser>(
     resetPasswordTokenExpires: Date,
     passwordChangedAt: Date,
     avatar: String,
+    role: {
+      type: String,
+      enum: ["user", "admin"],
+      default: "user",
+    },
   },
   {
     toJSON: {

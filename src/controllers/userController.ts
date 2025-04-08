@@ -3,7 +3,7 @@ import AppError from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { sendEmail, signInToken } from "../utils/data";
 import crypto from "crypto";
-import { AuthRequest } from "./authController";
+import { AuthRequest, login } from "./authController";
 
 export const createUser = catchAsync(async (req, res, next) => {
   const { firstName, lastName, email, password, confirmPassword } = req.body;
@@ -81,33 +81,39 @@ export const verifyEmail = catchAsync(async (req, res, next) => {
   });
 });
 
-export const loginUser = catchAsync(async (req, res, next) => {
-  const { email, password } = req.body;
+// export const loginUser = catchAsync(async (req, res, next) => {
+//   const { email, password } = req.body;
 
-  if (!email || !password) {
-    return next(new AppError("Please provide email and password!", 400));
-  }
+//   if (!email || !password) {
+//     return next(new AppError("Please provide email and password!", 400));
+//   }
 
-  const user = await User.findOne({ email });
+//   const user = await User.findOne({ email });
 
-  if (!user || !(await user.isPasswordCorrect(password))) {
-    return next(new AppError("Incorrect email or password!", 401));
-  }
+//   if (!user || !(await user.isPasswordCorrect(password))) {
+//     return next(new AppError("Incorrect email or password!", 401));
+//   }
 
-  if (!user.emailVerified) {
-    return next(new AppError("Email not verified!", 403));
-  }
+//   if (user.role !== "user") {
+//     return next(new AppError("User not found!", 401));
+//   }
 
-  const token = signInToken(user.id);
+//   if (!user.emailVerified) {
+//     return next(new AppError("Email not verified!", 403));
+//   }
 
-  res.status(200).json({
-    status: "success",
-    token,
-    data: {
-      user,
-    },
-  });
-});
+//   const token = signInToken(user.id);
+
+//   res.status(200).json({
+//     status: "success",
+//     token,
+//     data: {
+//       user,
+//     },
+//   });
+// });
+
+export const loginUser = login("user");
 
 export const forgotPassword = catchAsync(async (req, res, next) => {
   const { email } = req.body;
