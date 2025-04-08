@@ -1,6 +1,8 @@
-import mongoose, { Schema } from "mongoose";
+import { Schema } from "mongoose";
 import jwt, { SignOptions } from "jsonwebtoken";
 import nodemailer from "nodemailer";
+import path from "path";
+const fs = require("fs").promises;
 
 export const extraClean = (schema: Schema) => {
   schema.set("versionKey", false);
@@ -66,4 +68,11 @@ export const sendEmail = async (options: {
   };
 
   await transporter.sendMail(mailOptions);
+};
+
+export const removeOldAvatarPhoto = async (filename: string) => {
+  // if (filename.startsWith("default")) return;
+
+  const filePath = path.join(__dirname, "../../", "public", "img", filename);
+  await fs.rm(filePath, { force: true }).catch(console.log);
 };

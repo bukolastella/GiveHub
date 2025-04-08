@@ -7,7 +7,10 @@ import {
   getUserProfile,
   loginUser,
   resetPassword,
+  resizeAvatar,
+  updateAvatar,
   updatePassword,
+  uploadAvatar,
   verifyEmail,
 } from "./controllers/userController";
 import {
@@ -16,9 +19,11 @@ import {
   loginAdmin,
   oAuthFacebook,
   oAuthGoogle,
+  restrictTo,
   userProtect,
 } from "./controllers/authController";
 import passport from "passport";
+import multer from "multer";
 import { Strategy as FacebookStrategy } from "passport-facebook";
 
 export const app = express();
@@ -43,9 +48,6 @@ app.post("/api/v1/users/verify-email", verifyEmail);
 app.post("/api/v1/users/login", loginUser);
 app.post("/api/v1/users/forgot-password", forgotPassword);
 app.post("/api/v1/users/reset-password", resetPassword);
-app.post("/api/v1/users/update-password", userProtect, updatePassword);
-app.get("/api/v1/users/profile", userProtect, getUserProfile);
-app.post("/api/v1/users/delete-account", userProtect, deleteUserAccount);
 app.post("/api/v1/google-auth", googleAuth);
 app.get("/api/v1/oauth-google", oAuthGoogle);
 app.get(
@@ -59,6 +61,33 @@ app.get(
     session: false,
   }),
   oAuthFacebook
+);
+//
+app.post(
+  "/api/v1/users/update-password",
+  userProtect,
+  restrictTo("user"),
+  updatePassword
+);
+app.get(
+  "/api/v1/users/profile",
+  userProtect,
+  restrictTo("user"),
+  getUserProfile
+);
+app.delete(
+  "/api/v1/users/delete-account",
+  userProtect,
+  restrictTo("user"),
+  deleteUserAccount
+);
+app.post(
+  "/api/v1/users/avatar",
+  userProtect,
+  restrictTo("user"),
+  uploadAvatar,
+  resizeAvatar,
+  updateAvatar
 );
 
 // Admin
