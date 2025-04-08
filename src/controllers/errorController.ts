@@ -30,6 +30,9 @@ const handleJsonWebTokenError = () =>
 const handleTokenExpiredError = () =>
   new AppError("Your token has expired. Please login again!", 401);
 
+const handleMulterError = () =>
+  new AppError("Max count of file exceeded!", 401);
+
 export const globalErrorHandler = (
   err: any,
   req: Request,
@@ -47,6 +50,7 @@ export const globalErrorHandler = (
   if (error.name === "CastError") error = handleCastError(error);
   if (error.code === 11000)
     error = handleDuplicatedErrorDB(error.errorResponse);
+  if (error.code === "LIMIT_UNEXPECTED_FILE") error = handleMulterError();
   if (error.name === "ValidationError") error = handleValidationErrorDB(error);
   if (error.name === "JsonWebTokenError") error = handleJsonWebTokenError();
   if (error.name === "TokenExpiredError") error = handleTokenExpiredError();

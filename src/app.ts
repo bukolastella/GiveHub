@@ -24,6 +24,7 @@ import {
 } from "./controllers/authController";
 import passport from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
+import { createCampaign, uploadMedias } from "./controllers/campaignController";
 
 export const app = express();
 app.use(express.json());
@@ -91,6 +92,13 @@ app.post(
 
 // Admin
 app.post("/api/v1/admins/login", loginAdmin);
+app.post(
+  "/api/v1/campaign",
+  userProtect,
+  restrictTo("admin"),
+  uploadMedias,
+  createCampaign
+);
 
 app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({
