@@ -5,7 +5,7 @@ import e from "express";
 import { Campaign } from "../models/campaignModel";
 import slugify from "slugify";
 import path from "path";
-const fs = require("fs");
+import fs from "fs";
 
 const multerStorage = multer.diskStorage({
   destination(_req, _file, callback) {
@@ -85,7 +85,87 @@ export const createCampaign = catchAsync(async (req, res, next) => {
   } catch (error) {
     if (tempFiles && tempFiles.length > 0) {
       for (const file of tempFiles) {
-        fs.unlink(path.join(file.destination, file.filename), (err: Error) => {
+        fs.unlink(path.join(file.destination, file.filename), (err) => {
+          if (err) console.error("Failed to delete file:", file.filename, err);
+        });
+      }
+    }
+
+    next(error);
+  }
+});
+
+export const editCampaign = catchAsync(async (req, res, next) => {
+  const tempFiles = req.files as Express.Multer.File[] | undefined;
+  const { id } = req.params;
+
+  try {
+    if (!tempFiles) {
+      throw next(new AppError("Media not found.", 400));
+    }
+
+    if (tempFiles.length < 3) {
+      throw next(new AppError("Media not up to required length", 400));
+    }
+    const mediaFilenames = tempFiles.map((ev) => ev.filename);
+
+    const { title, description, priceTarget, startDate, endDate } = req.body;
+
+    const tempCampaign = await Campaign.findById(id);
+
+    if (!tempCampaign) {
+      throw next(new AppError("Id not found", 400));
+    }
+
+    const oldFilenames = tempCampaign.medias;
+
+    const payload = {
+      title,
+      slug: slugify(`${title}-${Date.now()}`, {
+        lower: true,
+      }),
+      description,
+      priceTarget,
+      startDate: tempCampaign.startDate,
+      endDate,
+      medias: mediaFilenames,
+    };
+
+    const newCampaign = await Campaign.findByIdAndUpdate(id, payload, {
+      new: true,
+      runValidators: true,
+    });
+
+    if (!newCampaign) {
+      throw next(new AppError("Update failed", 400));
+    }
+
+    if (payload.medias && oldFilenames && oldFilenames.length > 0) {
+      for (const filename of oldFilenames) {
+        const filePath = path.join(
+          __dirname,
+          "../../",
+          "public",
+          "img",
+          "medias",
+          filename
+        );
+        fs.unlink(filePath, (err) => {
+          if (err) console.log(`Deleted old file: ${filePath}`);
+        });
+      }
+    }
+
+    res.status(200).json({
+      status: "success",
+      data: {
+        campaign: newCampaign,
+      },
+    });
+  } catch (error) {
+    if (tempFiles && tempFiles.length > 0) {
+      for (const file of tempFiles) {
+        fs.unlink(path.join(file.destination, file.filename), (err) => {
           if (err) console.error("Failed to delete file:", file.filename, err);
         });
       }

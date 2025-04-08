@@ -24,7 +24,11 @@ import {
 } from "./controllers/authController";
 import passport from "passport";
 import { Strategy as FacebookStrategy } from "passport-facebook";
-import { createCampaign, uploadMedias } from "./controllers/campaignController";
+import {
+  createCampaign,
+  editCampaign,
+  uploadMedias,
+} from "./controllers/campaignController";
 
 export const app = express();
 app.use(express.json());
@@ -98,6 +102,13 @@ app.post(
   restrictTo("admin"),
   uploadMedias,
   createCampaign
+);
+app.patch(
+  "/api/v1/campaign/:id",
+  userProtect,
+  restrictTo("admin"),
+  uploadMedias,
+  editCampaign
 );
 
 app.all(/(.*)/, (req, res, next) => {
