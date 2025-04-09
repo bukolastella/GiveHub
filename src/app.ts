@@ -32,6 +32,11 @@ import {
   getCampaign,
   uploadMedias,
 } from "./controllers/campaignController";
+import {
+  getDonation,
+  getAllDonation,
+  createDonation,
+} from "./controllers/donationController";
 
 export const app = express();
 app.use(express.json());
@@ -122,6 +127,11 @@ app.delete(
   restrictTo("admin"),
   deleteCampaign
 );
+
+// donations
+app.post("/api/v1/donation", userProtect, restrictTo("admin"), createDonation);
+app.get("/api/v1/donation", userProtect, restrictTo("admin"), getAllDonation);
+app.get("/api/v1/donation/:id", userProtect, restrictTo("admin"), getDonation);
 
 app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({

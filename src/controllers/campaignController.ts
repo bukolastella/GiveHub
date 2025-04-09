@@ -6,6 +6,7 @@ import { Campaign } from "../models/campaignModel";
 import slugify from "slugify";
 import path from "path";
 import fs from "fs";
+import { campaignSchemaJoi } from "../utils/validation";
 
 const multerStorage = multer.diskStorage({
   destination(_req, _file, callback) {
@@ -52,6 +53,17 @@ export const uploadMedias = mediasUpload.array("media", 3);
 
 export const createCampaign = catchAsync(async (req, res, next) => {
   const tempFiles = req.files as Express.Multer.File[] | undefined;
+  const { error, value } = campaignSchemaJoi
+    .fork(
+      ["slug", "medias", "currentPrice", "status", "statusReason"],
+      (schema) => schema.optional()
+    )
+    .validate(req.body);
+
+  if (error) {
+    return next(new AppError(error.details[0].message, 400));
+  }
+
   try {
     if (!tempFiles) {
       return next(new AppError("Media not found.", 400));
@@ -62,7 +74,7 @@ export const createCampaign = catchAsync(async (req, res, next) => {
     }
     const mediaFilenames = tempFiles.map((ev) => ev.filename);
 
-    const { title, description, priceTarget, startDate, endDate } = req.body;
+    const { title, description, priceTarget, startDate, endDate } = value;
 
     const newCampaign = await Campaign.create({
       title,

@@ -1,4 +1,6 @@
 import { model, Schema } from "mongoose";
+import AppError from "../utils/appError";
+import { campaignSchemaJoi } from "../utils/validation";
 
 const campaignSchema = new Schema({
   title: {
@@ -22,12 +24,35 @@ const campaignSchema = new Schema({
     type: [String],
     maxLength: 3,
   },
+  currentPrice: {
+    type: Number,
+    default: 0,
+  },
   priceTarget: {
     type: Number,
-    default: false,
+    default: 0,
   },
   startDate: Date,
   endDate: Date,
+  status: {
+    type: Boolean,
+    default: true,
+  },
+  statusReason: {
+    type: String,
+    enum: ["price-reached", "deadline-reached"],
+  },
+});
+
+campaignSchema.pre("save", function (next) {
+  const campaign = this.toObject() as any;
+  delete campaign.id;
+
+  const { error } = campaignSchemaJoi.validate(campaign);
+  if (error) {
+    return next(new AppError(error.details[0].message, 400));
+  }
+  next();
 });
 
 export const Campaign = model("Campaign", campaignSchema);
