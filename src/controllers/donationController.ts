@@ -34,11 +34,25 @@ export const createDonation = catchAsync(async (req, res, next) => {
     currentPrice: newPrice,
   });
 
-  if (tempCampaign ? newPrice >= tempCampaign?.priceTarget : false) {
+  if (newPrice >= tempCampaign.priceTarget) {
     await Campaign.findByIdAndUpdate(campaignId, {
       status: false,
       statusReason: "price-reached",
     });
+  }
+
+  if (tempCampaign.endDate ? new Date() > tempCampaign.endDate : false) {
+    await Campaign.findByIdAndUpdate(campaignId, {
+      status: false,
+      statusReason: "deadline-reached",
+    });
+
+    return next(
+      new AppError(
+        "Can't donate to this campaign because the deadline has passed",
+        400
+      )
+    );
   }
 
   const newDonation = await Donation.create({

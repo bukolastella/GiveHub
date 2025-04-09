@@ -37,6 +37,7 @@ import {
   getAllDonation,
   createDonation,
 } from "./controllers/donationController";
+import "./utils/cron";
 
 export const app = express();
 app.use(express.json());
