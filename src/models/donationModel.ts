@@ -19,6 +19,11 @@ const donationSchema = new Schema({
     type: Date,
     default: new Date(),
   },
+  reference: String,
+  paymentStatus: {
+    type: String,
+    enum: ["success"],
+  },
 });
 
 donationSchema.pre("save", function (next) {

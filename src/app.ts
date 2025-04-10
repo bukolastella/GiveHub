@@ -36,6 +36,7 @@ import {
   getDonation,
   getAllDonation,
   createDonation,
+  payForDonation,
 } from "./controllers/donationController";
 import "./utils/cron";
 
@@ -120,8 +121,8 @@ app.patch(
   editCampaign
 );
 
-app.get("/api/v1/campaign", userProtect, restrictTo("admin"), getAllCampaign);
-app.get("/api/v1/campaign/:id", userProtect, restrictTo("admin"), getCampaign);
+app.get("/api/v1/campaign", getAllCampaign);
+app.get("/api/v1/campaign/:id", getCampaign);
 app.delete(
   "/api/v1/campaign/:id",
   userProtect,
@@ -130,9 +131,15 @@ app.delete(
 );
 
 // donations
-app.post("/api/v1/donation", userProtect, restrictTo("admin"), createDonation);
-app.get("/api/v1/donation", userProtect, restrictTo("admin"), getAllDonation);
-app.get("/api/v1/donation/:id", userProtect, restrictTo("admin"), getDonation);
+app.post("/api/v1/donation", userProtect, restrictTo("user"), createDonation);
+app.get("/api/v1/donation", userProtect, restrictTo("user"), getAllDonation);
+app.get("/api/v1/donation/:id", userProtect, restrictTo("user"), getDonation);
+app.post(
+  "/api/v1/donation/initialize",
+  userProtect,
+  restrictTo("user"),
+  payForDonation
+);
 
 app.all(/(.*)/, (req, res, next) => {
   res.status(404).json({

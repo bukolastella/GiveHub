@@ -4,6 +4,8 @@ export const donationSchemaJoi = Joi.object({
   userId: Joi.string().required(),
   campaignId: Joi.string().required(),
   amount: Joi.number().required().positive().greater(0),
+  reference: Joi.string().required(),
+  paymentStatus: Joi.string().required(),
 });
 
 export const campaignSchemaJoi = Joi.object({
