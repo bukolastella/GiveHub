@@ -4,6 +4,7 @@ import { Donation } from "../models/donationModel";
 import AppError from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { donationSchemaJoi } from "../utils/validation";
+import { User } from "../models/userModel";
 const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
 export const preValidateDonation = catchAsync(async (req, res, next) => {
@@ -290,22 +291,68 @@ export const createDonation = catchAsync(async (req, res, next) => {
 });
 
 export const getAllDonation = catchAsync(async (req, res, next) => {
-  const newDonation = await Donation.find().populate([
+  const { search, page, limit } = req.query;
+
+  if ((page && !limit) || (limit && !page)) {
+    return next(new AppError("Page and Limit must be defined", 400));
+  }
+
+  const filter: Record<string, any> = {};
+
+  if (search !== undefined) {
+    const campaigns = await Campaign.find({
+      title: { $regex: search, $options: "i" },
+    });
+
+    const campaignIds = campaigns.map((c) => c._id);
+    filter.campaign = { $in: campaignIds };
+  }
+
+  if ((req.user as any).role === "user") {
+    const user = await User.findById((req.user as any).id);
+
+    if (!user) {
+      return next(new AppError("User not found", 400));
+    }
+
+    filter.user = user.id;
+  }
+
+  let query = Donation.find(filter).populate([
     { path: "user", select: "firstName lastName" },
     { path: "campaign", select: "title slug" },
   ]);
 
-  if (!newDonation) {
-    return next(new AppError("Id not found", 400));
+  const totalDocs = await Donation.countDocuments(filter);
+  const queryPage = Number(page) || 1;
+  const queryLimit = Number(limit) || totalDocs;
+  const skip = (queryPage - 1) * queryLimit;
+  const totalPages = Math.ceil(totalDocs / queryLimit);
+
+  query = query.skip(skip).limit(queryLimit);
+
+  const donations = await query;
+
+  const responseBody: any = {
+    status: "success",
+    result: donations.length,
+    data: {
+      donations,
+    },
+  };
+
+  if (page && limit) {
+    responseBody.pagination = {
+      currentPage: queryPage,
+      totalPages,
+      totalResults: totalDocs,
+      resultsPerPage: queryLimit,
+      nextPage: queryPage < totalPages ? queryPage + 1 : null,
+      prevPage: queryPage > 1 ? queryPage - 1 : null,
+    };
   }
 
-  res.status(200).json({
-    status: "success",
-    result: newDonation.length,
-    data: {
-      donation: newDonation,
-    },
-  });
+  res.status(200).json(responseBody);
 });
 
 export const getDonation = catchAsync(async (req, res, next) => {

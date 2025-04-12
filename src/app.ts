@@ -143,7 +143,12 @@ app.delete(
 );
 
 // donations
-app.get("/api/v1/donation", userProtect, restrictTo("user"), getAllDonation);
+app.get(
+  "/api/v1/donation",
+  userProtect,
+  restrictTo("user", "admin"),
+  getAllDonation
+);
 app.get("/api/v1/donation/:id", userProtect, restrictTo("user"), getDonation);
 app.post(
   "/api/v1/donation/paystack/initialize",

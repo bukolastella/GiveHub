@@ -188,7 +188,13 @@ export const editCampaign = catchAsync(async (req, res, next) => {
 });
 
 export const getAllCampaign = catchAsync(async (req, res, next) => {
-  const tempCampaign = await Campaign.find();
+  const { status } = req.query;
+
+  const filter: any = {};
+
+  if (status !== undefined) filter.status = status;
+
+  const tempCampaign = await Campaign.find(filter);
 
   res.status(200).json({
     status: "success",
