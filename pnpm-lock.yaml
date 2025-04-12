@@ -50,6 +50,9 @@ importers:
       slugify:
         specifier: ^1.6.6
         version: 1.6.6
+      stripe:
+        specifier: ^18.0.0
+        version: 18.0.0
       validator:
         specifier: ^13.15.0
         version: 13.15.0
@@ -880,6 +883,10 @@ packages:
 
   string_decoder@1.1.1:
     resolution: {integrity: sha512-n/ShnvDi6FHbbVfviro+WojiFzv+s8MPMHBczVePfUpDJLwoLT0ht1l4YwBCbi8pJAveEEdnkHyPyTP/mzRfwg==}
+
+  stripe@18.0.0:
+    resolution: {integrity: sha512-3Fs33IzKUby//9kCkCa1uRpinAoTvj6rJgQ2jrBEysoxEvfsclvXdna1amyEYbA2EKkjynuB4+L/kleCCaWTpA==}
+    engines: {node: '>=12.*'}
 
   toidentifier@1.0.1:
     resolution: {integrity: sha512-o5sSPKEkg/DIQNmH43V0/uerLrpzVedkUh8tGNvaeXpfpuwjKenlSox/2O/BTlZUtEe+JG7s5YhEz608PlAHRA==}
@@ -1832,6 +1839,11 @@ snapshots:
   string_decoder@1.1.1:
     dependencies:
       safe-buffer: 5.1.2
+
+  stripe@18.0.0:
+    dependencies:
+      '@types/node': 22.14.0
+      qs: 6.14.0
 
   toidentifier@1.0.1: {}
 

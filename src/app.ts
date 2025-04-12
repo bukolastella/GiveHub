@@ -36,11 +36,23 @@ import {
   getDonation,
   getAllDonation,
   createDonation,
-  payForDonation,
+  donationStripeWebhook,
+  donationPaystackInitialize,
+  preValidateDonation,
+  verifyPaystackDonation,
+  donationStripeInitialize,
 } from "./controllers/donationController";
 import "./utils/cron";
 
 export const app = express();
+
+app.post(
+  "/api/v1/donation/stripe/webhook",
+  express.raw({ type: "application/json" }),
+  donationStripeWebhook,
+  createDonation
+);
+
 app.use(express.json());
 
 passport.use(
@@ -131,14 +143,29 @@ app.delete(
 );
 
 // donations
-app.post("/api/v1/donation", userProtect, restrictTo("user"), createDonation);
 app.get("/api/v1/donation", userProtect, restrictTo("user"), getAllDonation);
 app.get("/api/v1/donation/:id", userProtect, restrictTo("user"), getDonation);
 app.post(
-  "/api/v1/donation/initialize",
+  "/api/v1/donation/paystack/initialize",
   userProtect,
   restrictTo("user"),
-  payForDonation
+  preValidateDonation,
+  donationPaystackInitialize
+);
+app.post(
+  "/api/v1/donation/paystack",
+  userProtect,
+  restrictTo("user"),
+  verifyPaystackDonation,
+  createDonation
+);
+
+app.post(
+  "/api/v1/donation/stripe/initialize",
+  userProtect,
+  restrictTo("user"),
+  preValidateDonation,
+  donationStripeInitialize
 );
 
 app.all(/(.*)/, (req, res, next) => {

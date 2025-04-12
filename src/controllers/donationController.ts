@@ -1,10 +1,12 @@
+import e from "express";
 import { Campaign } from "../models/campaignModel";
 import { Donation } from "../models/donationModel";
 import AppError from "../utils/appError";
 import { catchAsync } from "../utils/catchAsync";
 import { donationSchemaJoi } from "../utils/validation";
+const stripe = require("stripe")(process.env.STRIPE_SECRET_KEY);
 
-export const payForDonation = catchAsync(async (req, res, next) => {
+export const preValidateDonation = catchAsync(async (req, res, next) => {
   const { error, value } = donationSchemaJoi
     .fork(["userId", "reference", "paymentStatus"], (schema) =>
       schema.optional()
@@ -46,12 +48,115 @@ export const payForDonation = catchAsync(async (req, res, next) => {
     );
   }
 
+  //
+  next();
+});
+
+export const donationStripeInitialize = catchAsync(async (req, res, next) => {
+  const { error, value } = donationSchemaJoi
+    .fork(["userId", "reference", "paymentStatus"], (schema) =>
+      schema.optional()
+    )
+    .validate(req.body);
+
+  if (error) {
+    return next(new AppError(error.details[0].message, 400));
+  }
+
+  const { campaignId, amount } = value;
+
+  const tempCampaign = await Campaign.findById(campaignId);
+
+  if (!tempCampaign) {
+    return next(new AppError("Can't find campaign.", 400));
+  }
+
+  //
+  const session = await stripe.checkout.sessions.create({
+    line_items: [
+      {
+        price_data: {
+          currency: "ngn",
+          product_data: {
+            name: tempCampaign.title,
+          },
+          unit_amount: amount * 100,
+        },
+        quantity: 1,
+      },
+    ],
+    mode: "payment",
+    success_url: "http://localhost:4242/success",
+    cancel_url: "http://localhost:4242/cancel",
+    metadata: {
+      campaignId: campaignId,
+      userId: (req.user as any).id,
+      donatedAmount: amount,
+    },
+  });
+
+  res.status(200).json({
+    status: "success",
+    data: {
+      data: session.url,
+    },
+  });
+});
+
+export const donationStripeWebhook = catchAsync(async (req, res, next) => {
+  const endpointSecret = process.env.STRIPE_DONATION_WEBHOOK_KEY;
+
+  const sig = req.headers["stripe-signature"];
+
+  let event;
+
+  try {
+    event = stripe.webhooks.constructEvent(req.body, sig, endpointSecret);
+  } catch (err: any) {
+    return next(new AppError(`Webhook Error: ${err.message}`, 400));
+  }
+
+  switch (event.type) {
+    case "checkout.session.completed":
+      const checkoutSessionCompleted = event.data.object;
+
+      const { campaignId, userId, donatedAmount } =
+        checkoutSessionCompleted.metadata;
+      const amount = +donatedAmount;
+
+      req.body = {};
+
+      req.body.campaignId = campaignId;
+      req.body.userId = userId;
+      req.body.amount = amount;
+      req.body.reference = checkoutSessionCompleted.id;
+
+      next();
+      break;
+    default:
+      return next(new AppError(`Unhandled event type: ${event.type}`, 400));
+  }
+});
+
+export const donationPaystackInitialize = catchAsync(async (req, res, next) => {
+  const { error, value } = donationSchemaJoi
+    .fork(["userId", "reference", "paymentStatus"], (schema) =>
+      schema.optional()
+    )
+    .validate(req.body);
+
+  if (error) {
+    return next(new AppError(error.details[0].message, 400));
+  }
+
+  const { campaignId, amount } = value;
+
   const params = {
     email: (req.user as any).email,
     amount: amount * 100,
-    callback_url: "https://youringhsdj-success-url.com", //
+    callback_url: "https://youringhsdj-success-url.com", //change based on requirement
     metadata: {
-      cancel_action: "https://your-cancel-url.com", //
+      cancel_action: "https://your-cancel-url.com", //change based on requirement
       campaignId: campaignId,
       userId: (req.user as any).id,
       donatedAmount: amount,
@@ -75,7 +180,7 @@ export const payForDonation = catchAsync(async (req, res, next) => {
     return next(new AppError(resultData.message, 400));
   }
 
-  res.status(201).json({
+  res.status(200).json({
     status: "success",
     data: {
       data: resultData.data.authorization_url,
@@ -83,7 +188,7 @@ export const payForDonation = catchAsync(async (req, res, next) => {
   });
 });
 
-export const createDonation = catchAsync(async (req, res, next) => {
+export const verifyPaystackDonation = catchAsync(async (req, res, next) => {
   const { error, value } = donationSchemaJoi
     .fork(["userId", "campaignId", "amount", "paymentStatus"], (schema) =>
       schema.optional()
@@ -100,7 +205,7 @@ export const createDonation = catchAsync(async (req, res, next) => {
     reference,
   });
 
-  if (hasUsedRef) {
+  if (hasUsedRef.length > 0) {
     return next(new AppError("Payment has been verified already", 400));
   }
 
@@ -128,6 +233,26 @@ export const createDonation = catchAsync(async (req, res, next) => {
 
   const { campaignId, userId, donatedAmount } = resultData.data.metadata;
   const amount = +donatedAmount;
+
+  req.body.campaignId = campaignId;
+  req.body.userId = userId;
+  req.body.amount = amount;
+
+  //
+
+  next();
+});
+
+export const createDonation = catchAsync(async (req, res, next) => {
+  const { error, value } = donationSchemaJoi
+    .fork(["paymentStatus"], (schema) => schema.optional())
+    .validate(req.body);
+
+  if (error) {
+    return next(new AppError(error.details[0].message, 400));
+  }
+
+  const { reference, campaignId, userId, amount } = value;
 
   const tempCampaign = await Campaign.findById(campaignId);
 
