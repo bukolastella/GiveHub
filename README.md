@@ -49,15 +49,3 @@
 * Admins create cases for users to donate to.
 * Timeline/status management for donations still needs enhancement.
 * Recurring payments/card saving under consideration.
-
----
-
-## 🗂️ Project Setup
-
-Clone this repo and install dependencies:
-
-```bash
-git clone https://github.com/your-org/givehub-backend.git  
-cd givehub-backend  
-npm install  
-```
